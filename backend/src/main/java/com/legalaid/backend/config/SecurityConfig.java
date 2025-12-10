@@ -34,14 +34,23 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
+
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()   // allow login and refresh
-                        .anyRequest().authenticated()              // protect others
+                        // ✅ PUBLIC ROUTES (Task 21 Requirement)
+                        .requestMatchers("/auth/login", "/auth/register").permitAll()
+
+                        // ✅ ALL OTHER ROUTES ARE PROTECTED
+                        .anyRequest().authenticated()
                 )
+
+                // ✅ JWT BASED STATELESS SESSION
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+
                 .authenticationProvider(authenticationProvider())
+
+                // ✅ APPLY JWT FILTER
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -54,7 +63,6 @@ public class SecurityConfig {
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
-
 
     @Bean
     public PasswordEncoder passwordEncoder() {
