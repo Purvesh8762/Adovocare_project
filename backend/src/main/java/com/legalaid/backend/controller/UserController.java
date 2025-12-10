@@ -1,19 +1,40 @@
 package com.legalaid.backend.controller;
 
+import com.legalaid.backend.model.User;
+import com.legalaid.backend.repository.UserRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/user")
-@CrossOrigin("*")
+@RequestMapping("/users")
 public class UserController {
 
-    @GetMapping("/profile")
-    public String getUserProfile(Authentication authentication) {
+    private final UserRepository userRepository;
 
-        // authentication.getName() returns email/username of logged-in user
-        String loggedInUser = authentication.getName();
+    public UserController(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
-        return "Your profile data for: " + loggedInUser;
+    // GET /users/me  -> return currently authenticated user
+    @GetMapping("/me")
+    public User getCurrentUser(Authentication authentication) {
+        String email = authentication.getName();  // from JWT subject
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found: " + email));
+    }
+
+    // Simple DTO for updating profile
+    public record UpdateProfileRequest(String username) {}
+
+    // PUT /users/me  -> update own profile (here only username)
+    @PutMapping("/me")
+    public User updateProfile(@RequestBody UpdateProfileRequest request,
+                              Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found: " + email));
+
+        user.setUsername(request.username());
+        return userRepository.save(user);
     }
 }
