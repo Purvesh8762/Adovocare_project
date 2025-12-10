@@ -1,25 +1,46 @@
 package com.legalaid.backend.security;
 
-import org.springframework.beans.factory.annotation.Value;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.stereotype.Component;
+
+import java.util.Date;
 
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+    private final String SECRET = "very_long_secret_key_change_this"; // replace with strong secret key
 
-    @Value("${jwt.expirationMs}")
-    private long jwtExpirationMs;
+    private final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 15;  // 15 minutes
+    private final long REFRESH_TOKEN_EXPIRATION = 1000 * 60 * 60 * 24; // 24 hours
 
-    // TODO: Implement real JWT generation and validation once library/version is finalized.
+    public String generateAccessToken(String username) {
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRATION))
+                .signWith(SignatureAlgorithm.HS256, SECRET)
+                .compact();
+    }
 
-    public String generateToken(String username) {
-        // temporary dummy token, just for structure
-        return "DUMMY_TOKEN_FOR_" + username;
+    public String generateRefreshToken(String username) {
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION))
+                .signWith(SignatureAlgorithm.HS256, SECRET)
+                .compact();
+    }
+
+    public String extractUsername(String token) {
+        return Jwts.parser()
+                .setSigningKey(SECRET)
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
     }
 
     public boolean isTokenValid(String token, String username) {
-        return token.equals("DUMMY_TOKEN_FOR_" + username);
+        return username.equals(extractUsername(token));
     }
 }
